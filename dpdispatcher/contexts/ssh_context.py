@@ -1026,8 +1026,7 @@ class SSHContext(BaseContext):
                 if attempt == attempts:
                     raise
                 dlog.warning(
-                    "remote cleanup failed for %s (attempt %d/%d); "
-                    "retrying in %d s",
+                    "remote cleanup failed for %s (attempt %d/%d); retrying in %d s",
                     remotepath,
                     attempt,
                     attempts,

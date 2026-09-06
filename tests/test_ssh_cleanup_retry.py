@@ -58,9 +58,7 @@ class TestSSHCleanupRetry(unittest.TestCase):
 
     @patch("dpdispatcher.contexts.ssh_context.time.sleep")
     def test_rmtree_raises_after_retry_exhaustion(self, sleep):
-        self.context.block_checkcall.side_effect = RuntimeError(
-            "Directory not empty"
-        )
+        self.context.block_checkcall.side_effect = RuntimeError("Directory not empty")
 
         with self.assertRaisesRegex(RuntimeError, "Directory not empty"):
             self.context._rmtree("/remote/root")
