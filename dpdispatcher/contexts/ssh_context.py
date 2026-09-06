@@ -1012,16 +1012,16 @@ class SSHContext(BaseContext):
             return
 
         attempts = 3
-        transient_errors = (
-            "Directory not empty",
-            "Device or resource busy",
-        )
         for attempt in range(1, attempts + 1):
             try:
                 self.block_checkcall(command, asynchronously=False)
                 return
             except RuntimeError as error:
-                if not any(message in str(error) for message in transient_errors):
+                message = str(error)
+                is_transient = "Directory not empty" in message or (
+                    "Device or resource busy" in message and ".nfs" in message
+                )
+                if not is_transient:
                     raise
                 if attempt == attempts:
                     raise
