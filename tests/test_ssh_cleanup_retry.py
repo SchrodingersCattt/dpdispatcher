@@ -17,9 +17,7 @@ class TestSSHCleanupRetry(unittest.TestCase):
         self.context.block_checkcall = MagicMock()
 
     @patch("dpdispatcher.contexts.ssh_context.time.sleep")
-    def test_rmtree_retries_transient_failure(
-        self, sleep: MagicMock
-    ) -> None:
+    def test_rmtree_retries_transient_failure(self, sleep: MagicMock) -> None:
         """Retry a transient directory metadata race."""
         self.context.block_checkcall.side_effect = [
             RuntimeError("Directory not empty"),
@@ -38,9 +36,7 @@ class TestSSHCleanupRetry(unittest.TestCase):
         sleep.assert_called_once_with(1)
 
     @patch("dpdispatcher.contexts.ssh_context.time.sleep")
-    def test_rmtree_propagates_non_transient_failure(
-        self, sleep: MagicMock
-    ) -> None:
+    def test_rmtree_propagates_non_transient_failure(self, sleep: MagicMock) -> None:
         """Propagate unrelated cleanup failures without retrying."""
         self.context.block_checkcall.side_effect = RuntimeError("permission denied")
 
@@ -53,9 +49,7 @@ class TestSSHCleanupRetry(unittest.TestCase):
         sleep.assert_not_called()
 
     @patch("dpdispatcher.contexts.ssh_context.time.sleep")
-    def test_rmtree_retries_nfs_busy_failure(
-        self, sleep: MagicMock
-    ) -> None:
+    def test_rmtree_retries_nfs_busy_failure(self, sleep: MagicMock) -> None:
         """Retry a busy NFS temporary file left by an open handle."""
         self.context.block_checkcall.side_effect = [
             RuntimeError(".nfs0001: Device or resource busy"),
@@ -68,9 +62,7 @@ class TestSSHCleanupRetry(unittest.TestCase):
         sleep.assert_called_once_with(1)
 
     @patch("dpdispatcher.contexts.ssh_context.time.sleep")
-    def test_rmtree_propagates_non_nfs_busy_failure(
-        self, sleep: MagicMock
-    ) -> None:
+    def test_rmtree_propagates_non_nfs_busy_failure(self, sleep: MagicMock) -> None:
         """Do not retry a busy error unrelated to an NFS temporary file."""
         self.context.block_checkcall.side_effect = RuntimeError(
             "/mnt/active: Device or resource busy"
@@ -85,9 +77,7 @@ class TestSSHCleanupRetry(unittest.TestCase):
         sleep.assert_not_called()
 
     @patch("dpdispatcher.contexts.ssh_context.time.sleep")
-    def test_rmtree_raises_after_retry_exhaustion(
-        self, sleep: MagicMock
-    ) -> None:
+    def test_rmtree_raises_after_retry_exhaustion(self, sleep: MagicMock) -> None:
         """Raise the original transient error after bounded retries."""
         self.context.block_checkcall.side_effect = RuntimeError("Directory not empty")
 
