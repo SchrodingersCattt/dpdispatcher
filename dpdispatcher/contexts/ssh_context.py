@@ -996,7 +996,7 @@ class SSHContext(BaseContext):
             return retcode, cmd_pipes["stdout"], cmd_pipes["stderr"]
 
     def _rmtree(self, remotepath: str, verbose: bool = False) -> None:
-        """Remove the remote path."""
+        """Remove the remote path, retrying transient NAS metadata races."""
         # The original implementation method removes files one by one using sftp.
         # If the latency of the remote server is high, it is very slow.
         # Thus, it's better to use system's `rm` to remove a directory, which may
@@ -1006,10 +1006,34 @@ class SSHContext(BaseContext):
         # In some supercomputers, it's very slow to remove large numbers of files
         # (e.g. directory containing trajectory) due to bad I/O performance.
         # So an asynchronously option is provided.
-        self.block_checkcall(
-            f"rm -rf {shlex.quote(remotepath)}",
-            asynchronously=self.clean_asynchronously,
+        command = f"rm -rf {shlex.quote(remotepath)}"
+        if self.clean_asynchronously:
+            self.block_checkcall(command, asynchronously=True)
+            return
+
+        attempts = 3
+        transient_errors = (
+            "Directory not empty",
+            "Device or resource busy",
         )
+        for attempt in range(1, attempts + 1):
+            try:
+                self.block_checkcall(command, asynchronously=False)
+                return
+            except RuntimeError as error:
+                if not any(message in str(error) for message in transient_errors):
+                    raise
+                if attempt == attempts:
+                    raise
+                dlog.warning(
+                    "remote cleanup failed for %s (attempt %d/%d); "
+                    "retrying in %d s",
+                    remotepath,
+                    attempt,
+                    attempts,
+                    attempt,
+                )
+                time.sleep(attempt)
 
     def _put_files(
         self,
