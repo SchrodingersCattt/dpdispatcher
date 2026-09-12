@@ -1639,7 +1639,11 @@ class Task:
         ).as_posix()
         remote_root = getattr(context, "remote_root", None)
         sftp = getattr(context, "sftp", None)
-        if context.check_file_exists(tag) and isinstance(remote_root, str) and sftp is not None:
+        if (
+            context.check_file_exists(tag)
+            and isinstance(remote_root, str)
+            and sftp is not None
+        ):
             remote_tag = pathlib.PurePath(remote_root, tag).as_posix()
             stale_tag = remote_tag + ".stale-recovery"
             try:
