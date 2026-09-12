@@ -120,7 +120,10 @@ exit 1
     def test_rmtree_retries_nfs_busy_failure(self, sleep: MagicMock) -> None:
         """Retry a busy NFS temporary file left by an open handle."""
         self.context.block_checkcall.side_effect = [
-            RuntimeError(".nfs0001: Device or resource busy"),
+            RuntimeError(
+                "Get error code 1 in calling env LC_ALL=C rm -rf /remote/root "
+                "with job: test . message: .nfs0001: Device or resource busy"
+            ),
             None,
         ]
 
@@ -133,7 +136,8 @@ exit 1
     def test_rmtree_propagates_non_nfs_busy_failure(self, sleep: MagicMock) -> None:
         """Do not retry a busy error unrelated to an NFS temporary file."""
         self.context.block_checkcall.side_effect = RuntimeError(
-            "/mnt/active: Device or resource busy"
+            "Get error code 1 in calling env LC_ALL=C rm -rf /remote/.nfs0001 "
+            "with job: test . message: /mnt/active: Device or resource busy"
         )
 
         with self.assertRaisesRegex(RuntimeError, "Device or resource busy"):

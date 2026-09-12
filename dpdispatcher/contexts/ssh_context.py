@@ -1019,6 +1019,9 @@ class SSHContext(BaseContext):
                 return
             except RuntimeError as error:
                 message = str(error)
+                _, separator, diagnostic = message.rpartition(" . message: ")
+                if separator:
+                    message = diagnostic
                 is_transient = "Directory not empty" in message or (
                     "Device or resource busy" in message and ".nfs" in message
                 )
