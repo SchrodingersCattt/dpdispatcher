@@ -1078,6 +1078,18 @@ class Submission:
                         submission_dict["continue_on_failure"]
                     )
                 self.bind_machine(machine=self.machine)
+                # A stale finished tag can survive ratio_unfinished cleanup
+                # while its backward files were removed. Reconcile those
+                # tasks before monitoring so recovery reruns only the missing
+                # task instead of archiving absent files.
+                for task in self.belonging_tasks:
+                    task.reconcile_finished_state(machine.context)
+                for job in self.belonging_jobs:
+                    if any(
+                        task.task_state == JobStatus.unsubmitted
+                        for task in job.job_task_list
+                    ):
+                        job.job_state = JobStatus.unsubmitted
                 dlog.info(
                     f"Find old submission; recover submission from json file;"
                     f"submission.submission_hash:{submission.submission_hash}; "
@@ -1609,6 +1621,29 @@ class Task:
         ]
         task_format = Argument("task", dict, task_args)
         return task_format
+
+    def reconcile_finished_state(self, context: "BaseContext") -> None:
+        """Reclassify a stale finished task when backward files are missing."""
+        if self.task_state != JobStatus.finished or not self.backward_files:
+            return
+        missing = []
+        for filename in self.backward_files:
+            path = pathlib.PurePath(self.task_work_path, filename).as_posix()
+            if not context.check_file_exists(path):
+                missing.append(path)
+        if not missing:
+            return
+        self.task_state = JobStatus.unsubmitted
+        tag = pathlib.PurePath(
+            self.task_work_path, self.task_hash + "_task_tag_finished"
+        ).as_posix()
+        if context.check_file_exists(tag) and hasattr(context, "sftp"):
+            remote_tag = pathlib.PurePath(context.remote_root, tag).as_posix()
+            stale_tag = remote_tag + ".stale-recovery"
+            try:
+                context.sftp.rename(remote_tag, stale_tag)
+            except OSError:
+                pass
 
     def get_task_state(self, context: "BaseContext") -> None:
         """Get the task state by checking the tag file.
