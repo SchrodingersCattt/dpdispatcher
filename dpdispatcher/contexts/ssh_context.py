@@ -1014,7 +1014,8 @@ class SSHContext(BaseContext):
         attempts = 3
         for attempt in range(1, attempts + 1):
             try:
-                self.block_checkcall(command, asynchronously=False)
+                # Keep diagnostics in English for the transient-error checks below.
+                self.block_checkcall(f"env LC_ALL=C {command}", asynchronously=False)
                 return
             except RuntimeError as error:
                 message = str(error)
