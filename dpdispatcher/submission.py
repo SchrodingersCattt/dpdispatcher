@@ -1637,11 +1637,13 @@ class Task:
         tag = pathlib.PurePath(
             self.task_work_path, self.task_hash + "_task_tag_finished"
         ).as_posix()
-        if context.check_file_exists(tag) and hasattr(context, "sftp"):
-            remote_tag = pathlib.PurePath(context.remote_root, tag).as_posix()
+        remote_root = getattr(context, "remote_root", None)
+        sftp = getattr(context, "sftp", None)
+        if context.check_file_exists(tag) and isinstance(remote_root, str) and sftp is not None:
+            remote_tag = pathlib.PurePath(remote_root, tag).as_posix()
             stale_tag = remote_tag + ".stale-recovery"
             try:
-                context.sftp.rename(remote_tag, stale_tag)
+                sftp.rename(remote_tag, stale_tag)
             except OSError:
                 pass
 
